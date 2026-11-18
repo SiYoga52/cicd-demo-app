@@ -63,8 +63,10 @@ pipeline {
             steps {
                 sh '''
                     SHA=$(git rev-parse HEAD)
-                    printf 'BUILD_NUMBER=%s\nGIT_COMMIT=%s\n' "$BUILD_NUMBER" "$SHA" > build-info.txt
-                    tar -czf app.tar.gz --exclude=app.tar.gz --exclude=.git .
+                    echo "BUILD_NUMBER=${BUILD_NUMBER}" > build-info.txt
+                    echo "GIT_COMMIT=${SHA}" >> build-info.txt
+                    tar -czf "/tmp/app-${BUILD_NUMBER}.tar.gz" --exclude=.git .
+                    mv "/tmp/app-${BUILD_NUMBER}.tar.gz" app.tar.gz
                     echo "Создан архив app.tar.gz"
                     tar -tzf app.tar.gz | grep build-info.txt
                 '''
