@@ -67,7 +67,11 @@ pipeline {
                         echo "Ошибка: APP_PORT должен быть целым числом от 1024 до 65535. Получено: ${APP_PORT}"
                         exit 1
                     fi
-                    port=$((10#${APP_PORT}))
+                    # dash, which Jenkins uses for sh, rejects 10# and leading zeros.
+                    port=$(printf '%s' "${APP_PORT}" | sed 's/^0*//')
+                    if [ -z "${port}" ]; then
+                        port=0
+                    fi
                     if [ "${port}" -lt 1024 ] || [ "${port}" -gt 65535 ]; then
                         echo "Ошибка: APP_PORT должен быть целым числом от 1024 до 65535. Получено: ${APP_PORT}"
                         exit 1
