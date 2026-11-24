@@ -114,6 +114,12 @@ pipeline {
             steps {
                 sh '''
                     set -eu
+                    # On this lab machine pypi.org is reachable through the local proxy.
+                    if ! getent hosts pypi.org >/dev/null 2>&1; then
+                        export http_proxy=http://127.0.0.1:10809
+                        export https_proxy=http://127.0.0.1:10809
+                        export no_proxy=localhost,127.0.0.1,::1
+                    fi
                     python3 -m venv .venv
                     . .venv/bin/activate
                     python -m pip install --upgrade pip
