@@ -1,0 +1,53 @@
+---
+# Local deploy. The image is already in this machine's Docker Engine.
+# SSH and a registry pull are not used.
+- name: Deploy student-app on localhost
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Require the local image tag and host port
+      ansible.builtin.assert:
+        that:
+          - image is defined
+          - image | string | length > 0
+          - app_port is defined
+          - app_port | string is match('^[0-9]+$')
+          - app_port | int >= 1024
+          - app_port | int <= 65535
+        fail_msg: >-
+          Pass extra-vars image (local tag, for example
+          student-app:12-abc1234) and app_port (integer 1024-65535).
+
+    - name: Create or update the student-app container
+      community.docker.docker_container:
+        name: student-app
+        image: "{{ image }}"
+        state: started
+        pull: never
+        restart: false
+        image_name_mismatch: ignore
+        container_default_behavior: no_defaults
+        restart_policy: on-failure
+        restart_retries: 5
+        comparisons:
+          image: strict
+          published_ports: strict
+          restart_policy: strict
+        published_ports:
+          - "127.0.0.1:{{ app_port | int }}:8080"
+
+    - name: Wait until /health returns status ok
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+        return_content: true
+        use_proxy: false
+      register: health
+      retries: 15
+      delay: 2
+      until: >-
+        (health.status | default(0)) == 200 and
+        ((health.json | default({})).status | default('')) == 'ok'
